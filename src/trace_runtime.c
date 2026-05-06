@@ -52,8 +52,35 @@ static pid_t launch_tracee(char *const argv[])
      *
      * Em erro, imprima uma mensagem com perror() e retorne -1.
      */
-    fprintf(stderr, "erro: TODO Semana 2: implementar launch_tracee()\n");
-    return -1;
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork falhou");
+        return -1;
+    }
+
+    if (pid == 0) {
+        if (ptrace(PTRACE_TRACEME, 0, NULL, NULL) < 0) {
+            perror("ptrace(PTRACE_TRACEME) falhou");
+            _exit(1);
+        }
+
+        if (raise(SIGSTOP) != 0) {
+            perror("raise(SIGSTOP) falhou");
+            _exit(1);
+        }
+
+        execvp(argv[0], argv);
+
+        perror("execvp falhou");
+        _exit(1);
+    }
+
+    // fprintf(stderr, "erro: TODO Semana 2: implementar launch_tracee()\n");
+    // return -1;
+
+    return pid;
 }
 
 static int wait_for_initial_stop(pid_t child)
@@ -66,7 +93,21 @@ static int wait_for_initial_stop(pid_t child)
      *
      * Retorne 0 se o filho parou como esperado, -1 em erro.
      */
-    fprintf(stderr, "erro: TODO Semana 2: implementar wait_for_initial_stop()\n");
+
+    int status;
+
+    if (waitpid(child, &status, 0) < 0) {
+        perror("waitpid falhou na parada inicial");
+        return -1;
+    }
+
+    if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP) {
+        return 0;
+    }
+
+    // fprintf(stderr, "erro: TODO Semana 2: implementar wait_for_initial_stop()\n");
+
+    fprintf(stderr, "erro: processo filho não parou como esperado na inicialização.\n");
     return -1;
 }
 
