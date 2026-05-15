@@ -32,6 +32,18 @@ static void fill_event_from_regs(pid_t pid,
     memset(ev, 0, sizeof(*ev));
     ev->pid = pid;
     ev->entering = entering;
+    /* * Mapeamento de registradores x86_64 conforme a especificação 
+     */
+    ev->syscall_no = regs->orig_rax; // Número da chamada de sistema 
+    ev->ret = regs->rax;            // Valor de retorno (importante na saída) 
+
+    // Argumentos da syscall (são sempre 6 no Linux x86_64) 
+    ev->args[0] = regs->rdi; // 1º argumento 
+    ev->args[1] = regs->rsi; // 2º argumento 
+    ev->args[2] = regs->rdx; // 3º argumento 
+    ev->args[3] = regs->r10; // 4º argumento 
+    ev->args[4] = regs->r8;  // 5º argumento 
+    ev->args[5] = regs->r9;  // 6º argumento
 }
 
 static pid_t launch_tracee(char *const argv[])
@@ -237,13 +249,15 @@ int trace_program(char *const argv[],
             return 0;
         }
 
-        /*
-         * TODO Semana 4:
-         *
-         * Use PTRACE_GETREGS para preencher regs.
-         * Depois chame fill_event_from_regs() e observer().
+        
+        /* * Semana 4: Captura real dos registradores via ptrace 
          */
-        memset(&regs, 0, sizeof(regs));
+        if (ptrace(PTRACE_GETREGS, child, NULL, &regs) < 0) {
+            perror("ptrace(PTRACE_GETREGS) falhou");
+            return -1;
+        }
+
+        // Agora que 'regs' tem dados reais, preenchemos o evento e chamamos o observer
         fill_event_from_regs(child, entering, &regs, &ev);
         if (observer != NULL) {
             observer(&ev, userdata);
