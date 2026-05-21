@@ -29,9 +29,20 @@ static void fill_event_from_regs(pid_t pid,
      * - os seis argumentos ficam em rdi, rsi, rdx, r10, r8 e r9.
      * - ev->entering deve copiar o parametro entering.
      */
+
     memset(ev, 0, sizeof(*ev));
     ev->pid = pid;
     ev->entering = entering;
+    
+    ev->syscall_no = regs->orig_rax;
+    ev->ret = regs->rax;            
+
+    ev->args[0] = regs->rdi; 
+    ev->args[1] = regs->rsi; 
+    ev->args[2] = regs->rdx; 
+    ev->args[3] = regs->r10; 
+    ev->args[4] = regs->r8;  
+    ev->args[5] = regs->r9;  
 }
 
 static pid_t launch_tracee(char *const argv[])
@@ -237,13 +248,19 @@ int trace_program(char *const argv[],
             return 0;
         }
 
+        
         /*
          * TODO Semana 4:
          *
          * Use PTRACE_GETREGS para preencher regs.
          * Depois chame fill_event_from_regs() e observer().
          */
-        memset(&regs, 0, sizeof(regs));
+
+        if (ptrace(PTRACE_GETREGS, child, NULL, &regs) < 0) {
+            perror("ptrace(PTRACE_GETREGS) falhou");
+            return -1;
+        }
+
         fill_event_from_regs(child, entering, &regs, &ev);
         if (observer != NULL) {
             observer(&ev, userdata);
