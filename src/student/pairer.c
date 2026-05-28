@@ -1,6 +1,5 @@
 #include "student_api.h"
 
- */
 int student_pair_syscall(struct syscall_pairer *pairer,
                          const struct syscall_event *ev,
                          struct syscall_event *out)
@@ -29,7 +28,7 @@ int student_pair_syscall(struct syscall_pairer *pairer,
      *   0 se ainda nao ha syscall completa
      *  -1 se a sequencia de eventos parece invalida
      */
-    
+
     if (ev->entering) {
         
         if (pairer->has_entry) {
