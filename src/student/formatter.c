@@ -54,13 +54,71 @@ void student_format_event(const struct syscall_event *ev,
      * Para caminhos do processo monitorado, use read_child_string().
      * Se a leitura falhar, imprima "<ilegivel>".
      */
-    snprintf(buf, bufsz, "%s(%#lx, %#lx, %#lx, %#lx, %#lx, %#lx) = %ld",
-             syscall_name(ev->syscall_no),
-             ev->args[0],
-             ev->args[1],
-             ev->args[2],
-             ev->args[3],
-             ev->args[4],
-             ev->args[5],
-             ev->ret);
+    switch (ev->syscall_no) {
+ 
+    case SYS_read:
+        snprintf(buf, bufsz, "read(%d, %#lx, %lu) = %ld",
+                 (int)ev->args[0],
+                 ev->args[1],
+                 ev->args[2],
+                 ev->ret);
+        return;
+ 
+    case SYS_write:
+        snprintf(buf, bufsz, "write(%d, %#lx, %lu) = %ld",
+                 (int)ev->args[0],
+                 ev->args[1],
+                 ev->args[2],
+                 ev->ret);
+        return;
+ 
+    case SYS_openat: {
+        char path[256];
+        read_path(ev->pid, ev->args[1], path, sizeof(path));
+ 
+        if ((int)ev->args[0] == AT_FDCWD) {
+            snprintf(buf, bufsz,
+                     "openat(AT_FDCWD, \"%s\", %#x, %#o) = %ld",
+                     path,
+                     (unsigned int)ev->args[2],
+                     (unsigned int)ev->args[3],
+                     ev->ret);
+        } else {
+            snprintf(buf, bufsz,
+                     "openat(%d, \"%s\", %#x, %#o) = %ld",
+                     (int)ev->args[0],
+                     path,
+                     (unsigned int)ev->args[2],
+                     (unsigned int)ev->args[3],
+                     ev->ret);
+        }
+        return;
+    }
+ 
+    case SYS_execve: {
+        char path[256];
+        read_path(ev->pid, ev->args[0], path, sizeof(path));
+        snprintf(buf, bufsz, "execve(\"%s\", ...) = %ld", path, ev->ret);
+        return;
+    }
+ 
+    case SYS_exit_group:
+        snprintf(buf, bufsz, "exit_group(%d) = %ld",
+                 (int)ev->args[0],
+                 ev->ret);
+        return;
+ 
+    default:
+        snprintf(buf, bufsz,
+                 "%s(%#lx, %#lx, %#lx, %#lx, %#lx, %#lx) = %ld",
+                 syscall_name(ev->syscall_no),
+                 ev->args[0],
+                 ev->args[1],
+                 ev->args[2],
+                 ev->args[3],
+                 ev->args[4],
+                 ev->args[5],
+                 ev->ret);
+        return;
+    }
 }
