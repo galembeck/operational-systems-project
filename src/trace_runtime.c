@@ -18,18 +18,6 @@ static void fill_event_from_regs(pid_t pid,
                                  const struct user_regs_struct *regs,
                                  struct syscall_event *ev)
 {
-    /*
-     * TODO Semana 4:
-     *
-     * Preencha struct syscall_event usando os registradores x86_64.
-     *
-     * Dicas:
-     * - regs->orig_rax contem o numero da syscall.
-     * - regs->rax contem o retorno, valido na saida.
-     * - os seis argumentos ficam em rdi, rsi, rdx, r10, r8 e r9.
-     * - ev->entering deve copiar o parametro entering.
-     */
-
     memset(ev, 0, sizeof(*ev));
     ev->pid = pid;
     ev->entering = entering;
@@ -47,22 +35,6 @@ static void fill_event_from_regs(pid_t pid,
 
 static pid_t launch_tracee(char *const argv[])
 {
-    /*
-     * TODO Semana 2:
-     *
-     * Crie o processo monitorado.
-     *
-     * Fluxo esperado:
-     * - fork()
-     * - no filho:
-     *   - ptrace(PTRACE_TRACEME, ...)
-     *   - raise(SIGSTOP)
-     *   - execvp(argv[0], argv)
-     * - no pai:
-     *   - retornar o pid do filho
-     *
-     * Em erro, imprima uma mensagem com perror() e retorne -1.
-     */
 
     pid_t pid = fork();
 
@@ -88,22 +60,11 @@ static pid_t launch_tracee(char *const argv[])
         _exit(1);
     }
 
-    // fprintf(stderr, "erro: TODO Semana 2: implementar launch_tracee()\n");
-    // return -1;
-
     return pid;
 }
 
 static int wait_for_initial_stop(pid_t child)
 {
-    /*
-     * TODO Semana 2:
-     *
-     * O filho chama raise(SIGSTOP) antes de executar o programa alvo.
-     * O pai precisa esperar essa parada inicial com waitpid().
-     *
-     * Retorne 0 se o filho parou como esperado, -1 em erro.
-     */
 
     int status;
 
@@ -116,20 +77,12 @@ static int wait_for_initial_stop(pid_t child)
         return 0;
     }
 
-    // fprintf(stderr, "erro: TODO Semana 2: implementar wait_for_initial_stop()\n");
-
     fprintf(stderr, "erro: processo filho não parou como esperado na inicialização.\n");
     return -1;
 }
 
 static int configure_trace_options(pid_t child)
 {
-  /*
-       * TODO Semana 3:
-       *
-       * Configure PTRACE_O_TRACESYSGOOD com PTRACE_SETOPTIONS.
-       * Isso ajuda a diferenciar paradas de syscall de outros sinais.
-       */
 
     if (ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACESYSGOOD) < 0) {
         perror("ptrace(PTRACE_SETOPTIONS) falhou");
@@ -140,15 +93,7 @@ static int configure_trace_options(pid_t child)
 
 static int resume_until_next_syscall(pid_t child, int signal_to_deliver)
 {
-  /*
-       * TODO Semana 3:
-       *
-       * Use ptrace(PTRACE_SYSCALL, ...) para deixar o filho executar ate a
-       * proxima entrada ou saida de syscall.
-       *
-       * signal_to_deliver deve ser repassado como quarto argumento do ptrace.
-       */
-
+  
     if (ptrace(PTRACE_SYSCALL, child, 0, signal_to_deliver) < 0) {
         perror("ptrace(PTRACE_SYSCALL) falhou");
         return -1;
@@ -158,23 +103,7 @@ static int resume_until_next_syscall(pid_t child, int signal_to_deliver)
 
 static int wait_for_syscall_stop(pid_t child, int *status)
 {
-  /*
-       * TODO Semana 3:
-       *
-       * Espere o filho com waitpid().
-       *
-       * Retorne:
-       *   1 se a parada foi uma parada de syscall;
-       *   0 se o filho terminou normalmente ou por sinal;
-       *  -1 em erro.
-       *
-       * Dicas:
-       * - WIFEXITED e WIFSIGNALED indicam fim do processo.
-       * - WIFSTOPPED indica que o processo parou.
-       * - com PTRACE_O_TRACESYSGOOD, syscall-stops aparecem com bit 0x80.
-       * - paradas SIGTRAP comuns nao devem ser entregues de volta ao filho.
-       */
-
+  
     if (waitpid(child, status, 0) < 0) {
         perror("waitpid falhou no loop de tracing");
         return -1;
@@ -247,14 +176,6 @@ int trace_program(char *const argv[],
             }
             return 0;
         }
-
-        
-        /*
-         * TODO Semana 4:
-         *
-         * Use PTRACE_GETREGS para preencher regs.
-         * Depois chame fill_event_from_regs() e observer().
-         */
 
         if (ptrace(PTRACE_GETREGS, child, NULL, &regs) < 0) {
             perror("ptrace(PTRACE_GETREGS) falhou");
